@@ -27,7 +27,6 @@ from backend.vision.tracker import TrackedObject
 from backend.vision.violations.direction import DirectionViolationDetector
 from backend.vision.violations.zone import ZoneViolationDetector
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Zone Violation Tests
 # ═══════════════════════════════════════════════════════════════════════════

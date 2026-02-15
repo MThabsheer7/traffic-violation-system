@@ -15,10 +15,9 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.api.database import get_db
 from backend.api.main import app
 from backend.api.models import Base
-from backend.api.database import get_db
-
 
 # ── Test Database Setup ───────────────────────────────────────────────────────
 

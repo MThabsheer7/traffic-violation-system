@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import func, select
@@ -22,7 +22,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.database import get_db
 from backend.api.models import Alert
-from backend.api.schemas import AlertCreate, AlertListResponse, AlertResponse, HourlyDataPoint, StatsResponse
+from backend.api.schemas import (
+    AlertCreate,
+    AlertListResponse,
+    AlertResponse,
+    HourlyDataPoint,
+    StatsResponse,
+)
 from backend.api.ws import ws_manager
 
 logger = logging.getLogger(__name__)
@@ -142,7 +148,7 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Get aggregate statistics for the dashboard KPI cards."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_start = today_start - timedelta(days=1)
 

@@ -17,13 +17,12 @@ import json
 import logging
 import random
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
 from backend.api.database import get_session_factory, init_db  # noqa: E402
 from backend.api.models import Alert  # noqa: E402
@@ -87,7 +86,7 @@ async def seed(count: int = 50) -> None:
     await init_db()
     factory = get_session_factory()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     alerts = []
 
     for day_offset in range(3):  # Last 3 days
