@@ -1,0 +1,89 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.so
+.venv/
+venv/
+env/
+
+# ===========================
+# Node / Frontend
+# ===========================
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# ===========================
+# Model Weights & Artifacts
+# ===========================
+models/*.onnx
+models/*.xml
+models/*.bin
+models/*.pt
+models/*.engine
+!models/.gitkeep
+
+# ===========================
+# Violation Snapshots
+# ===========================
+snapshots/*.jpg
+snapshots/*.png
+!snapshots/.gitkeep
+
+# ===========================
+# Database
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===========================
+# Environment / Secrets
+# ===========================
+.env
+.env.local
+.env.production
+
+# ===========================
+# IDE / Editor
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===========================
+# OS
+# ===========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Docker
+# ===========================
+docker-compose.override.yml
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+
+# ===========================
+# Testing / Coverage
+# ===========================
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
