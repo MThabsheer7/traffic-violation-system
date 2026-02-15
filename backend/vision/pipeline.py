@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 from backend.config import get_settings
-from backend.vision.detector import Detection, YOLODetector
+from backend.vision.detector import YOLODetector
 from backend.vision.tracker import CentroidTracker
 from backend.vision.violation_manager import ViolationManager
 

@@ -11,7 +11,6 @@ Sits between the tracker output and the API layer. For each frame:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from pathlib import Path

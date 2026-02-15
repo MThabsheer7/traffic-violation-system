@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -76,7 +75,7 @@ class Settings(BaseSettings):
 
 # ── Singleton ─────────────────────────────────────────────────────────────
 
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:

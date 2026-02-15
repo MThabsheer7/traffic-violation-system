@@ -234,7 +234,6 @@ def _benchmark(
     num_iterations: int = 50,
 ) -> None:
     """Compare FP32 vs INT8 inference speed."""
-    import openvino as ov
 
     logger.info("\nBenchmark: FP32 vs INT8 (%d iterations)", num_iterations)
     logger.info("-" * 40)

@@ -28,8 +28,6 @@ def tracker() -> CentroidTracker:
 @pytest.fixture
 def tracked_car() -> TrackedObject:
     """A tracked car object for direct use in violation tests."""
-    from collections import deque
-
     obj = TrackedObject(
         object_id=1,
         centroid=(300, 500),
