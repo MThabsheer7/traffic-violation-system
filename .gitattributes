@@ -1,0 +1,17 @@
+# Force LF line endings in the repository (fix CRLF issues on Windows)
+* text=auto eol=lf
+
+# Explicitly mark binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.xml binary
+*.bin binary
+*.pt binary
+*.onnx binary
