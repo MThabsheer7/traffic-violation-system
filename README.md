@@ -98,7 +98,18 @@ python -m backend.vision.pipeline --source path/to/traffic_video.mp4
 
 # Use webcam
 python -m backend.vision.pipeline --source 0
+
+# Detection only (no violation alerts)
+ENABLED_VIOLATIONS=none python -m backend.vision.pipeline --source 0
+
+# Illegal parking only
+ENABLED_VIOLATIONS=ILLEGAL_PARKING python -m backend.vision.pipeline --source 0
 ```
+
+> The annotated video window shows bounding boxes that change color based on violation state:
+> - 🟢 **Green** — tracked vehicle, no violation
+> - 🟡 **Yellow** — vehicle in no-parking zone (warning, >33% of dwell threshold)
+> - 🔴 **Red** — violation confirmed
 
 ### 5. Docker (Full Stack)
 
@@ -167,10 +178,12 @@ Interactive API docs are also available at `/docs` (Swagger UI) when the backend
 | `FRONTEND_URL` | `http://localhost:5173` | CORS allowed origin |
 | `VIDEO_SOURCE` | `0` | Webcam index, file path, or RTSP URL |
 | `MODEL_PATH` | `models/yolo26n_int8_openvino` | OpenVINO model directory |
-| `ZONE_POLYGON` | `[[100,400],...` | Zone boundary vertices (JSON) |
+| `ZONE_POLYGON` | `[[100,400],...` | No-parking zone boundary vertices (JSON) |
 | `LANE_DIRECTION` | `[1,0]` | Expected traffic direction `[dx, dy]` |
-| `DWELL_THRESHOLD` | `150` | Frames before parking violation triggers |
-| `DIRECTION_THRESHOLD` | `10` | Wrong-way frames before violation triggers |
+| `DIRECTION_ZONE_POLYGON` | *(empty)* | Lane zone for wrong-way checks — vehicles outside are ignored. Prevents false positives on two-way roads |
+| `DWELL_THRESHOLD` | `150` | Frames before parking violation triggers (~5s at 30 FPS) |
+| `DIRECTION_THRESHOLD` | `10` | Consecutive wrong-way frames before violation triggers |
+| `ENABLED_VIOLATIONS` | `all` | Which detectors to run: `all`, `none`, `ILLEGAL_PARKING`, `WRONG_WAY`, or comma-separated |
 
 ---
 
