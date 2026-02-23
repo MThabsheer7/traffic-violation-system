@@ -12,6 +12,8 @@ An edge-first architecture for smart traffic violation detection. Intelligence r
 
 ---
 
+https://github.com/user-attachments/assets/fa2b64f9-49f8-4a39-9993-f0fa65d292a2
+
 ## Architecture
 
 ```mermaid
