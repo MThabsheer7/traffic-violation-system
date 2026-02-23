@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import time
 
+import cv2
 import numpy as np
 
 from backend.vision.tracker import TrackedObject
@@ -40,6 +41,7 @@ class DirectionViolationDetector:
         direction_threshold: int = 10,
         min_displacement: float = 5.0,
         cooldown_seconds: float = 30.0,
+        lane_zone_polygon: list[list[int]] | None = None,
     ):
         # Normalize the lane direction vector
         direction = np.array(lane_direction, dtype=np.float64)
@@ -51,6 +53,11 @@ class DirectionViolationDetector:
         self.direction_threshold = direction_threshold
         self.min_displacement = min_displacement  # Min pixels to consider movement
         self.cooldown_seconds = cooldown_seconds
+
+        # Optional lane zone — only vehicles inside this polygon are checked
+        self.lane_zone = None
+        if lane_zone_polygon:
+            self.lane_zone = np.array(lane_zone_polygon, dtype=np.int32)
 
         # Track per-object: {object_id: consecutive_wrong_way_frames}
         self._wrong_way_counts: dict[int, int] = {}
@@ -94,6 +101,17 @@ class DirectionViolationDetector:
         now = time.time()
 
         for obj in tracked_objects:
+            # If a lane zone is defined, skip vehicles outside it
+            if self.lane_zone is not None:
+                result = cv2.pointPolygonTest(
+                    self.lane_zone.reshape(-1, 1, 2).astype(np.float32),
+                    (float(obj.centroid[0]), float(obj.centroid[1])),
+                    measureDist=False,
+                )
+                if result < 0:  # outside the lane zone
+                    self._wrong_way_counts.pop(obj.object_id, None)
+                    continue
+
             movement = self._compute_movement_vector(obj)
             if movement is None:
                 continue

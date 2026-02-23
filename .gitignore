@@ -25,6 +25,7 @@ frontend/.vite/
 # ===========================
 # Model Weights & Artifacts
 # ===========================
+models/*
 models/*.onnx
 models/*.xml
 models/*.bin
@@ -87,3 +88,5 @@ logs/
 htmlcov/
 .pytest_cache/
 coverage.xml
+
+datasets/*

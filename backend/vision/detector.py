@@ -52,7 +52,7 @@ class YOLODetector:
     def __init__(
         self,
         model_path: str,
-        confidence_threshold: float = 0.45,
+        confidence_threshold: float = 0.40,
         input_size: tuple[int, int] = (640, 640),
     ):
         self.model_path = Path(model_path)
@@ -147,40 +147,28 @@ class YOLODetector:
         """
         Post-process YOLO26n output tensor into Detection objects.
 
-        YOLO26n is NMS-free — output is already de-duplicated.
-        Output shape: (1, num_classes + 4, num_detections) for YOLO26n.
+        YOLO26n uses NMS-free end-to-end detection.
+        Output shape: (1, 300, 6) where each row is [x1, y1, x2, y2, confidence, class_id].
+        Coordinates are in the 640x640 letterboxed input space (corner format).
         """
-        # Squeeze batch dimension → (num_classes + 4, num_detections)
+        # Squeeze batch dimension → (300, 6)
         predictions = np.squeeze(output, axis=0)
-
-        # YOLO outputs: (4 + num_classes, N) → transpose to (N, 4 + num_classes)
-        if predictions.shape[0] < predictions.shape[1]:
-            predictions = predictions.T
 
         detections: list[Detection] = []
         pad_x, pad_y = pad
         orig_h, orig_w = original_shape
 
         for pred in predictions:
-            # First 4 values are box coordinates (cx, cy, w, h)
-            cx, cy, bw, bh = pred[:4]
-            class_scores = pred[4:]
-
-            # Get best class
-            class_id = int(np.argmax(class_scores))
-            confidence = float(class_scores[class_id])
+            # YOLO26n end-to-end format: [x1, y1, x2, y2, confidence, class_id]
+            x1, y1, x2, y2 = pred[:4]
+            confidence = float(pred[4])
+            class_id = int(pred[5])
 
             # Filter: confidence threshold + vehicle classes only
             if confidence < self.confidence_threshold:
                 continue
             if class_id not in VEHICLE_CLASS_IDS:
                 continue
-
-            # Convert from center format to corner format
-            x1 = cx - bw / 2
-            y1 = cy - bh / 2
-            x2 = cx + bw / 2
-            y2 = cy + bh / 2
 
             # Remove letterbox padding and rescale to original frame
             x1 = int((x1 - pad_x) / scale)

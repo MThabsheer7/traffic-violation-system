@@ -43,15 +43,33 @@ class ViolationManager:
         self.snapshot_dir = Path(snapshot_dir or settings.snapshot_dir)
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize violation detectors from config
-        self.zone_detector = ZoneViolationDetector(
-            polygon=settings.get_zone_polygon(),
-            dwell_threshold=settings.dwell_threshold,
-        )
-        self.direction_detector = DirectionViolationDetector(
-            lane_direction=settings.get_lane_direction(),
-            direction_threshold=settings.direction_threshold,
-        )
+        # Determine which violations are enabled
+        enabled = settings.enabled_violations.strip().upper()
+        if enabled == "ALL":
+            self._enabled = {"ILLEGAL_PARKING", "WRONG_WAY"}
+        elif enabled == "NONE":
+            self._enabled = set()
+        else:
+            self._enabled = {v.strip() for v in enabled.split(",") if v.strip()}
+
+        logger.info("Enabled violations: %s", self._enabled)
+
+        # Initialize violation detectors from config (only if enabled)
+        self.zone_detector = None
+        self.direction_detector = None
+
+        if "ILLEGAL_PARKING" in self._enabled:
+            self.zone_detector = ZoneViolationDetector(
+                polygon=settings.get_zone_polygon(),
+                dwell_threshold=settings.dwell_threshold,
+            )
+
+        if "WRONG_WAY" in self._enabled:
+            self.direction_detector = DirectionViolationDetector(
+                lane_direction=settings.get_lane_direction(),
+                direction_threshold=settings.direction_threshold,
+                lane_zone_polygon=settings.get_direction_zone_polygon(),
+            )
 
         # Stats
         self._total_violations = 0
@@ -82,12 +100,11 @@ class ViolationManager:
         """
         all_violations: list[ViolationEvent] = []
 
-        # Run each violation detector
-        zone_violations = self.zone_detector.check(tracked_objects)
-        direction_violations = self.direction_detector.check(tracked_objects)
-
-        all_violations.extend(zone_violations)
-        all_violations.extend(direction_violations)
+        # Run each enabled violation detector
+        if self.zone_detector:
+            all_violations.extend(self.zone_detector.check(tracked_objects))
+        if self.direction_detector:
+            all_violations.extend(self.direction_detector.check(tracked_objects))
 
         # Process each new violation: snapshot + dispatch
         for violation in all_violations:
@@ -149,5 +166,6 @@ class ViolationManager:
 
     def draw_overlays(self, frame: np.ndarray) -> np.ndarray:
         """Draw zone polygon and violation status overlays on the frame."""
-        frame = self.zone_detector.draw_zone(frame)
+        if self.zone_detector:
+            frame = self.zone_detector.draw_zone(frame)
         return frame

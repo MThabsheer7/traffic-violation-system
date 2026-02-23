@@ -45,11 +45,19 @@ class Settings(BaseSettings):
     # Expected lane direction vector [dx, dy]
     lane_direction: str = "[1,0]"
 
+    # Direction zone polygon — wrong-way checks only apply to vehicles inside this zone.
+    # If empty string, wrong-way detection applies to ALL vehicles (legacy behavior).
+    direction_zone_polygon: str = ""
+
     # Dwell time threshold in frames (150 = 5 seconds at 30 FPS)
     dwell_threshold: int = 150
 
     # Consecutive wrong-way frames required to trigger violation
     direction_threshold: int = 10
+
+    # Which violations to enable: comma-separated list or "all"
+    # Options: ILLEGAL_PARKING, WRONG_WAY
+    enabled_violations: str = "all"
 
     # Snapshot settings
     snapshot_dir: str = str(SNAPSHOTS_DIR)
@@ -63,6 +71,12 @@ class Settings(BaseSettings):
     def get_lane_direction(self) -> list[float]:
         """Parse lane direction from JSON string to [dx, dy] vector."""
         return json.loads(self.lane_direction)
+
+    def get_direction_zone_polygon(self) -> list[list[int]] | None:
+        """Parse direction zone polygon, or None if not configured."""
+        if not self.direction_zone_polygon.strip():
+            return None
+        return json.loads(self.direction_zone_polygon)
 
     def get_video_source(self) -> int | str:
         """Return video source as int (webcam) or str (file/RTSP)."""
