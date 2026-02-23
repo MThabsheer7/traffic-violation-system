@@ -36,23 +36,45 @@ COLOR_VIOLATION_BG = (0, 0, 180)
 def draw_detections(
     frame: np.ndarray,
     tracked_objects: list,
-    violations: list,
+    confirmed_violations: dict[int, str],
+    dwell_counts: dict[int, int] | None = None,
+    dwell_threshold: int = 150,
 ) -> np.ndarray:
-    """Draw bounding boxes, labels, and violation indicators on the frame."""
-    violation_obj_ids = {v.object_id for v in violations}
+    """Draw bounding boxes, labels, and violation indicators on the frame.
+
+    Box color reflects dwell state:
+      Green  = normal / not in zone
+      Yellow = in zone, >33% of dwell threshold (warning)
+      Red    = violation triggered
+    """
+    dwell_counts = dwell_counts or {}
 
     for obj in tracked_objects:
         x1, y1, x2, y2 = obj.bbox
-        is_violating = obj.object_id in violation_obj_ids
+        is_violating = obj.object_id in confirmed_violations
+        dwell = dwell_counts.get(obj.object_id, 0)
+        dwell_ratio = dwell / dwell_threshold if dwell_threshold > 0 else 0
 
-        # Choose color based on violation status
-        color = COLOR_RED if is_violating else COLOR_GREEN
+        # Color based on dwell progress
+        if is_violating or dwell_ratio >= 1.0:
+            color = COLOR_RED
+        elif dwell_ratio >= 0.33:
+            color = COLOR_YELLOW
+        else:
+            color = COLOR_GREEN
 
         # Bounding box
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        # Label: class name + ID + confidence
-        label = f"{obj.class_name} #{obj.object_id} {obj.confidence:.0%}"
+        # Label: class name + ID + confidence [+ violation tag]
+        base_label = f"{obj.class_name} #{obj.object_id} {obj.confidence:.0%}"
+        if obj.object_id in confirmed_violations:
+            vtype = confirmed_violations[obj.object_id].replace("_", " ")
+            label = f"{base_label}  ⚠ {vtype}"
+        elif dwell_ratio >= 0.33:
+            label = f"{base_label}  ⚠ IN ZONE"
+        else:
+            label = base_label
 
         # Label background
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
@@ -73,9 +95,14 @@ def draw_detections(
                 trail_color = tuple(int(c * alpha) for c in color)
                 cv2.line(frame, points[i - 1], points[i], trail_color, 2)
 
-    # Draw violation banners
-    for v in violations:
-        _draw_violation_banner(frame, v)
+    # Draw violation banners for currently confirmed violations
+    # Create dummy events just for the banner (only show active ones)
+    for v_id, v_type in confirmed_violations.items():
+        class _V:
+            object_id = v_id
+            violation_type = v_type
+        _draw_violation_banner(frame, _V())
+        break  # Only show one banner at a time to avoid clutter
 
     return frame
 
@@ -185,6 +212,9 @@ class VideoPipeline:
         )
 
         frame_count = 0
+        # Persistent dict: object_id → violation_type
+        # Stays set until dwell count drops (car leaves zone)
+        confirmed_violations: dict[int, str] = {}
 
         try:
             while True:
@@ -208,12 +238,34 @@ class VideoPipeline:
                     tracked_objects, frame
                 )
 
+                # Accumulate confirmed violations; clear when car leaves zone
+                for v in violations:
+                    confirmed_violations[v.object_id] = v.violation_type
+                if self.violation_manager.zone_detector:
+                    active_dwell_ids = set(self.violation_manager.zone_detector._dwell_counts.keys())
+                    # Remove confirmed violations for cars no longer in the zone
+                    stale = [oid for oid in confirmed_violations if oid not in active_dwell_ids]
+                    for oid in stale:
+                        confirmed_violations.pop(oid, None)
+
                 # ── 4. Annotate ──────────────────────────────────────────
                 if display:
                     self._update_fps()
                     annotated = frame.copy()
                     annotated = self.violation_manager.draw_overlays(annotated)
-                    annotated = draw_detections(annotated, tracked_objects, violations)
+
+                    # Pass dwell counts for Green→Yellow→Red coloring
+                    dwell_counts = {}
+                    dwell_threshold = 150
+                    if self.violation_manager.zone_detector:
+                        dwell_counts = dict(self.violation_manager.zone_detector._dwell_counts)
+                        dwell_threshold = self.violation_manager.zone_detector.dwell_threshold
+
+                    annotated = draw_detections(
+                        annotated, tracked_objects, confirmed_violations,
+                        dwell_counts=dwell_counts,
+                        dwell_threshold=dwell_threshold,
+                    )
                     annotated = draw_fps(annotated, self._fps)
                     annotated = draw_lane_direction(annotated, self.lane_direction)
 
@@ -224,10 +276,22 @@ class VideoPipeline:
                     if key in (ord("q"), 27):
                         logger.info("User quit")
                         break
+                # ── 5. Terminal FPS output (every second) ────────────────
+                if display and frame_count % 30 == 0 and self._fps > 0:
+                    violations_total = self.violation_manager.total_violations
+                    vehicles = len(tracked_objects)
+                    print(
+                        f"🚗 Vehicles: {vehicles:2d} | "
+                        f"⚠️  Violations: {violations_total:3d}",
+                        end="",
+                        flush=True,
+                    )
+
         finally:
             cap.release()
             if display:
                 cv2.destroyAllWindows()
+            print()  # newline after the live FPS line
 
             logger.info(
                 "Pipeline stopped — processed %d frames, %d violations detected",

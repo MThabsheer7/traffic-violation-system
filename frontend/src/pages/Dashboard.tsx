@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ShieldAlert, ParkingCircle, ArrowLeftRight, Clock } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
@@ -9,9 +10,18 @@ import { useAlerts, useStats } from '../hooks/useAlerts';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 export function Dashboard() {
-    const { stats } = useStats();
-    const { alerts, total, totalPages, page, setPage, filter, setFilter, loading } = useAlerts();
-    const { alerts: liveAlerts, connected } = useWebSocket();
+    const { stats, refetch: refetchStats } = useStats();
+    const { alerts, total, totalPages, page, setPage, filter, setFilter, loading, refetch: refetchAlerts } = useAlerts();
+    const { alerts: liveAlerts, connected, lastAlert } = useWebSocket();
+
+    // When a new WebSocket alert arrives, immediately refresh stats + table
+    useEffect(() => {
+        if (lastAlert) {
+            refetchStats();
+            refetchAlerts();
+        }
+    }, [lastAlert]);
+
 
     return (
         <div className="flex min-h-screen">

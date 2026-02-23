@@ -14,7 +14,8 @@ interface ViolationsTableProps {
 
 function formatDate(iso: string): string {
     const d = new Date(iso);
-    return d.toLocaleDateString('en-US', {
+    return d.toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
